@@ -1,4 +1,5 @@
 import { decryptSync } from './encryption';
+import { getApiUrl } from '../config';
 
 /**
  * Secure HTTPS & Authenticated API Client
@@ -16,8 +17,9 @@ export interface ApiOptions extends RequestInit {
 export async function secureFetch(endpoint: string, options: ApiOptions = {}, retries = 2): Promise<Response> {
   const { userId, token, headers: customHeaders, ...restOptions } = options;
 
-  // 1. HTTPS / Secure Transport enforcement check
-  let url = endpoint;
+  // 1. Resolve endpoint using central API_BASE_URL ("https://yashsboy.onrender.com")
+  let url = getApiUrl(endpoint);
+
   if (typeof window !== 'undefined') {
     if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
       url = url.replace('http://', 'https://');

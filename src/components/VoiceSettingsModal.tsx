@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, VolumeX, Sparkles, Key, CheckCircle2, AlertCircle, Info, X, Zap, Radio, Mic, Globe } from 'lucide-react';
+import { getApiUrl } from '../config';
 import {
   stopSpeech,
   speakMessage,
@@ -40,7 +41,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     if (isOpen) {
       setSelectedLang(getVoiceLanguageSetting());
       setSelectedSpeed(getVoiceRateSetting());
-      fetch('/api/health')
+      fetch(getApiUrl('/api/health'))
         .then((res) => res.json())
         .then((data) => {
           setHasGeminiKey(!!data.hasGeminiKey);

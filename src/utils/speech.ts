@@ -1,4 +1,5 @@
 import { decryptSync } from './encryption';
+import { getApiUrl } from '../config';
 
 export type VoiceLanguageSetting =
   | 'auto'
@@ -386,7 +387,9 @@ export function speakMessage(
   const speedMultiplier = getSpeedMultiplier();
 
   // Try Server-Side High Quality Neural TTS First (Gemini Flash Neural TTS)
-  fetch('/api/tts', {
+  const ttsUrl = getApiUrl('/api/tts');
+
+  fetch(ttsUrl, {
     method: 'POST',
     headers: getAuthHeadersForSpeech(),
     body: JSON.stringify({
