@@ -57,7 +57,7 @@ async function startServer() {
   try {
     if (!getApps().length) {
       firebaseAdminApp = initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'heroic-nucleus-4n50x',
+        projectId: process.env.FIREBASE_PROJECT_ID || 'alert-diode-449516-v6',
       });
     } else {
       firebaseAdminApp = getApps()[0]!;
