@@ -1,0 +1,8 @@
+{
+  "name": "Remix Daily Companion AI",
+  "description": "A calm, professional AI companion for daily reflection, emotional support, productivity coaching, and personal progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
