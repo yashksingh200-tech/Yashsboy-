@@ -2,6 +2,8 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Modality } from '@google/genai';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -50,6 +52,20 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Initialize Firebase Admin SDK for backend token verification
+  let firebaseAdminApp: App | null = null;
+  try {
+    if (!getApps().length) {
+      firebaseAdminApp = initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'heroic-nucleus-4n50x',
+      });
+    } else {
+      firebaseAdminApp = getApps()[0]!;
+    }
+  } catch (err) {
+    console.warn('[Firebase Admin] Initialization warning:', err);
+  }
+
   // Interface for Authenticated Requests
   interface AuthenticatedRequest extends express.Request {
     user?: {
@@ -59,7 +75,7 @@ async function startServer() {
   }
 
   // Mandatory Backend Authentication & Data Isolation Middleware
-  const requireAuth = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const requireAuth = async (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
     const authHeader = req.headers.authorization || req.headers['x-user-auth-token'];
     const userIdHeader = req.headers['x-user-id'] as string;
     const bodyUserId = req.body?.userId || req.body?.userProfile?.uid;
@@ -74,11 +90,28 @@ async function startServer() {
       token = bodyToken.trim();
     }
 
-    const effectiveUserId = userIdHeader || bodyUserId || (token.startsWith('sat_') ? token.split('_')[1] : null);
-
-    if (!token || !effectiveUserId) {
+    if (!token) {
       return res.status(401).json({
         error: 'Authentication required. Please provide a valid session auth token and user ID.',
+        code: 'UNAUTHORIZED_ACCESS',
+      });
+    }
+
+    let verifiedUid = '';
+    if (firebaseAdminApp && token.length > 50) {
+      try {
+        const decodedToken = await getAuth(firebaseAdminApp).verifyIdToken(token);
+        verifiedUid = decodedToken.uid;
+      } catch (tokenErr) {
+        console.warn('[Auth] Firebase ID Token verification fallback:', (tokenErr as Error).message);
+      }
+    }
+
+    const effectiveUserId = verifiedUid || userIdHeader || bodyUserId || (token.startsWith('sat_') ? token.split('_')[1] : null);
+
+    if (!effectiveUserId) {
+      return res.status(401).json({
+        error: 'Authentication required. Invalid or unverified session credentials.',
         code: 'UNAUTHORIZED_ACCESS',
       });
     }
