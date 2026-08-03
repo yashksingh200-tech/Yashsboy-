@@ -85,6 +85,11 @@ export const AuthScreen: React.FC = () => {
             )}
           </AnimatePresence>
 
+          {/* Debug Hostname */}
+          <div className="mb-4 p-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-600 dark:text-slate-300 font-mono text-center">
+            Current Hostname: <span className="font-bold select-all">{typeof window !== 'undefined' ? window.location.hostname : 'N/A'}</span>
+          </div>
+
           {/* Google Sign-In Button */}
           <button
             type="button"
