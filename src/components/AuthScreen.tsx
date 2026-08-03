@@ -122,16 +122,28 @@ export const AuthScreen: React.FC = () => {
             )}
           </button>
 
-          {/* Security Features Note */}
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-4 text-[11px] text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Firebase Auth</span>
+          {/* Security Features & Privacy Link Note */}
+          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 flex flex-col items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Firebase Auth</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                <span>AES-256 Storage</span>
+              </div>
             </div>
-            <span>•</span>
-            <div className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-indigo-500" />
-              <span>AES-256 Storage</span>
+            <div>
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              >
+                Privacy Policy
+              </a>
             </div>
           </div>
         </motion.div>

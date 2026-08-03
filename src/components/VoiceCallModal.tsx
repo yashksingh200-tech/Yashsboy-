@@ -36,6 +36,8 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
   const isMutedRef = useRef(isMuted);
   const isOpenRef = useRef(isOpen);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isListeningActiveRef = useRef(false);
+  const startRetryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to update aiStatus and aiStatusRef synchronously
   const updateAiStatus = (newStatus: 'listening' | 'speaking' | 'thinking') => {
@@ -93,12 +95,30 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen]);
 
+  // Schedule mic restart with delay and retry counter
+  const scheduleMicRestart = (delayMs = 300, retryCount = 0) => {
+    if (startRetryTimerRef.current) {
+      clearTimeout(startRetryTimerRef.current);
+    }
+    startRetryTimerRef.current = setTimeout(() => {
+      startRetryTimerRef.current = null;
+      if (isOpenRef.current && !isMutedRef.current && aiStatusRef.current === 'listening') {
+        startSpeechRecognition(retryCount);
+      }
+    }, delayMs);
+  };
+
   // Safely stop any active speech recognition instance
   const stopSpeechRecognitionInstance = () => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
+    if (startRetryTimerRef.current) {
+      clearTimeout(startRetryTimerRef.current);
+      startRetryTimerRef.current = null;
+    }
+    isListeningActiveRef.current = false;
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onstart = null;
@@ -112,8 +132,8 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     }
   };
 
-  // Start continuous speech recognition
-  const startSpeechRecognition = () => {
+  // Start continuous speech recognition with retry capabilities
+  const startSpeechRecognition = (retryCount = 0) => {
     if (isMutedRef.current || !isOpenRef.current) {
       console.log(`[VoiceCall Mic] Cannot start mic: muted=${isMutedRef.current}, isOpen=${isOpenRef.current}`);
       return;
@@ -143,6 +163,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
 
       rec.onstart = () => {
         console.log('[VoiceCall Mic] Speech recognition is actively listening for user voice...');
+        isListeningActiveRef.current = true;
       };
 
       rec.onresult = (e: any) => {
@@ -194,6 +215,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
 
       rec.onerror = (e: any) => {
         console.warn('[VoiceCall Mic] Recognition error:', e.error);
+        isListeningActiveRef.current = false;
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
           setHasMicPermission(false);
           return;
@@ -206,31 +228,47 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
           !isMutedRef.current &&
           aiStatusRef.current === 'listening'
         ) {
-          setTimeout(() => {
-            if (isOpenRef.current && !isMutedRef.current && aiStatusRef.current === 'listening') {
-              startSpeechRecognition();
-            }
-          }, 350);
+          scheduleMicRestart(350);
         }
       };
 
       rec.onend = () => {
         console.log(`[VoiceCall Mic] Session ended. Current status: ${aiStatusRef.current}`);
+        isListeningActiveRef.current = false;
         if (isOpenRef.current && !isMutedRef.current && aiStatusRef.current === 'listening') {
-          setTimeout(() => {
-            if (isOpenRef.current && !isMutedRef.current && aiStatusRef.current === 'listening') {
-              startSpeechRecognition();
-            }
-          }, 300);
+          scheduleMicRestart(300);
         }
       };
 
       recognitionRef.current = rec;
       rec.start();
     } catch (err) {
-      console.error('[VoiceCall Mic] Start exception:', err);
+      console.error(`[VoiceCall Mic] Start exception (attempt ${retryCount + 1}):`, err);
+      isListeningActiveRef.current = false;
+      if (retryCount < 5 && isOpenRef.current && !isMutedRef.current && aiStatusRef.current === 'listening') {
+        scheduleMicRestart(350 * (retryCount + 1), retryCount + 1);
+      }
     }
   };
+
+  // Watchdog: Keep microphone listening active when in 'listening' status
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const watchdogInterval = setInterval(() => {
+      if (
+        isOpenRef.current &&
+        !isMutedRef.current &&
+        aiStatusRef.current === 'listening' &&
+        !isListeningActiveRef.current
+      ) {
+        console.log('[VoiceCall Watchdog] AI is in listening status but mic recognition is inactive -> Restarting mic');
+        startSpeechRecognition();
+      }
+    }, 1500);
+
+    return () => clearInterval(watchdogInterval);
+  }, [isOpen]);
 
   // Process user spoken message and fetch Aria reply
   const handleUserSpokenMessage = async (userText: string) => {
@@ -282,6 +320,25 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
 
       if (!isOpenRef.current) return;
 
+      let hasFinishedSpeaking = false;
+      const finishSpeakingAndListen = () => {
+        if (hasFinishedSpeaking) return;
+        hasFinishedSpeaking = true;
+        if (!isOpenRef.current) return;
+        console.log('[VoiceCall TTS] Finished speaking -> Resuming microphone for user response');
+        updateAiStatus('listening');
+        scheduleMicRestart(250);
+      };
+
+      // Safety timer: calculate expected speech duration + padding
+      const safetyTimeoutMs = Math.max(6000, Math.min(45000, (aiReply.length / 8) * 1000 + 6000));
+      const safetyTimer = setTimeout(() => {
+        if (!hasFinishedSpeaking && aiStatusRef.current === 'speaking') {
+          console.warn('[VoiceCall TTS] Safety timeout reached for speech completion -> forcing mic resume');
+          finishSpeakingAndListen();
+        }
+      }, safetyTimeoutMs);
+
       if (isSpeakerOn) {
         speakMessage(
           aiReply,
@@ -292,28 +349,24 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
             updateAiStatus('speaking');
           },
           () => {
-            if (!isOpenRef.current) return;
-            console.log('[VoiceCall TTS] Finished speaking -> Resuming microphone for user response');
-            updateAiStatus('listening');
-            startSpeechRecognition();
+            clearTimeout(safetyTimer);
+            finishSpeakingAndListen();
           },
           () => {
-            if (!isOpenRef.current) return;
-            console.log('[VoiceCall TTS] Speech error/cancelled -> Resuming microphone');
-            updateAiStatus('listening');
-            startSpeechRecognition();
+            clearTimeout(safetyTimer);
+            finishSpeakingAndListen();
           }
         );
       } else {
-        updateAiStatus('listening');
-        startSpeechRecognition();
+        clearTimeout(safetyTimer);
+        finishSpeakingAndListen();
       }
     } catch (err) {
       console.error('[VoiceCall] API response error:', err);
       if (!isOpenRef.current) return;
       setTranscript("I'm experiencing a brief connection delay, but I'm right here with you.");
       updateAiStatus('listening');
-      startSpeechRecognition();
+      scheduleMicRestart(250);
     }
   };
 
@@ -325,6 +378,24 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
       setUserSpokenText('');
       setTextInput('');
       updateAiStatus('speaking');
+
+      let hasFinishedGreeting = false;
+      const finishGreetingAndListen = () => {
+        if (hasFinishedGreeting) return;
+        hasFinishedGreeting = true;
+        if (!isOpenRef.current) return;
+        console.log('[VoiceCall] Initial greeting finished -> Activating microphone listening');
+        updateAiStatus('listening');
+        scheduleMicRestart(250);
+      };
+
+      const greetingSafetyTimer = setTimeout(() => {
+        if (!hasFinishedGreeting) {
+          console.warn('[VoiceCall] Greeting safety timeout reached -> forcing mic activation');
+          finishGreetingAndListen();
+        }
+      }, 12000);
+
       if (isSpeakerOn) {
         speakMessage(
           initialGreeting,
@@ -335,21 +406,17 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
             updateAiStatus('speaking');
           },
           () => {
-            if (!isOpenRef.current) return;
-            console.log('[VoiceCall] Initial greeting finished -> Activating microphone listening');
-            updateAiStatus('listening');
-            startSpeechRecognition();
+            clearTimeout(greetingSafetyTimer);
+            finishGreetingAndListen();
           },
           () => {
-            if (!isOpenRef.current) return;
-            console.log('[VoiceCall] Initial greeting speech error/bypassed -> Activating microphone');
-            updateAiStatus('listening');
-            startSpeechRecognition();
+            clearTimeout(greetingSafetyTimer);
+            finishGreetingAndListen();
           }
         );
       } else {
-        updateAiStatus('listening');
-        startSpeechRecognition();
+        clearTimeout(greetingSafetyTimer);
+        finishGreetingAndListen();
       }
     } else {
       stopSpeech();

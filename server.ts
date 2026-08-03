@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { initializeApp, getApps, App } from 'firebase-admin/app';
@@ -1306,6 +1307,16 @@ Return a structured JSON object with these exact keys:
     } catch (err) {
       return res.status(500).json({ error: 'Failed to complete user data deletion.' });
     }
+  });
+
+  // Static Privacy Policy Route
+  app.get(['/privacy', '/privacy/', '/privacy.html'], (req, res) => {
+    const distPrivacy = path.join(process.cwd(), 'dist', 'privacy.html');
+    const publicPrivacy = path.join(process.cwd(), 'public', 'privacy.html');
+    if (fs.existsSync(distPrivacy)) {
+      return res.sendFile(distPrivacy);
+    }
+    return res.sendFile(publicPrivacy);
   });
 
   // Vite middleware for development vs static serve for production
