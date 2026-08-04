@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { AuthUser } from '../types';
 import {
   auth,
   googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   firebaseSignOut,
   onAuthStateChanged,
   FirebaseUser,
 } from '../lib/firebase';
-import { encryptSync, decryptSync } from '../utils/encryption';
+import { encryptSync } from '../utils/encryption';
 import { logSecurityEvent } from '../utils/securityGuard';
 
 interface AuthContextType {
@@ -42,6 +46,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Failed to encrypt session storage:', e);
     }
   };
+
+  // Check for redirect result on mount (for system browser Custom Tabs / redirect OAuth completion)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          const firebaseUser = result.user;
+          const idToken = await firebaseUser.getIdToken();
+          const authUser: AuthUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            photoURL: firebaseUser.photoURL || undefined,
+            provider: 'google',
+            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            token: idToken,
+          };
+          saveUserSession(authUser);
+          logSecurityEvent('LOGIN_SUCCESS', `Google OAuth redirect login for ${authUser.email}`, authUser.uid);
+          // If in Capacitor, close system browser window if open
+          if (Capacitor.isNativePlatform()) {
+            Browser.close().catch(() => {});
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Get redirect result check:', err);
+      });
+  }, []);
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
@@ -107,6 +140,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setIsLoading(true);
 
+    const isNative = Capacitor.isNativePlatform();
+
+    // Native Capacitor WebView Flow: Embedded WebViews are blocked by Google OAuth (disallowed_useragent).
+    // Using system browser Custom Tabs / signInWithRedirect via Capacitor Browser.
+    if (isNative) {
+      try {
+        console.log('[AuthContext] Native Capacitor detected. Triggering system browser OAuth flow.');
+        await Browser.close().catch(() => {});
+        await signInWithRedirect(auth, googleProvider);
+        return true;
+      } catch (err: any) {
+        console.error('Native sign in error, trying popup fallback:', err);
+        try {
+          const result = await signInWithPopup(auth, googleProvider);
+          const firebaseUser = result.user;
+          const idToken = await firebaseUser.getIdToken();
+
+          const authUser: AuthUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            photoURL: firebaseUser.photoURL || undefined,
+            provider: 'google',
+            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            token: idToken,
+          };
+
+          saveUserSession(authUser);
+          logSecurityEvent('LOGIN_SUCCESS', `Google OAuth login for ${authUser.email}`, authUser.uid);
+          setIsLoading(false);
+          return true;
+        } catch (popupErr: any) {
+          console.error('Native popup fallback error:', popupErr);
+          setError('Failed to sign in with Google in native view. Please try again.');
+          setIsLoading(false);
+          return false;
+        }
+      }
+    }
+
+    // Standard Web Flow
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
@@ -128,6 +202,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (err: any) {
       console.error('Google sign in error:', err);
+      // Fallback to redirect if popup is blocked/disallowed in iframe or browser
+      if (
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/disallowed-useragent' ||
+        String(err.message).toLowerCase().includes('disallowed') ||
+        String(err.message).toLowerCase().includes('popup')
+      ) {
+        try {
+          console.log('[AuthContext] Popup blocked or disallowed. Triggering signInWithRedirect fallback.');
+          await signInWithRedirect(auth, googleProvider);
+          return true;
+        } catch (redirectErr: any) {
+          console.error('Redirect fallback error:', redirectErr);
+        }
+      }
+
       let message = 'Failed to sign in with Google. Please try again.';
       if (err.code === 'auth/popup-closed-by-user') {
         message = 'Sign-in popup was closed before completing.';

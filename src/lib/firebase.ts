@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -32,6 +33,7 @@ googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-export { firebaseSignOut, signInWithPopup, signInWithRedirect, onAuthStateChanged };
+export { firebaseSignOut, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged };
 export type { FirebaseUser };
+
 
