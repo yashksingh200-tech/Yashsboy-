@@ -53,8 +53,15 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
-  // Serve static assets from public directory (manifest, icons, service worker)
-  app.use(express.static(path.join(process.cwd(), 'public')));
+  // Serve static assets from dist (production build output) or public (development fallback)
+  const distDir = path.join(process.cwd(), 'dist');
+  const publicDir = path.join(process.cwd(), 'public');
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir));
+  }
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+  }
 
   // Initialize Firebase Admin SDK for backend token verification
   let firebaseAdminApp: App | null = null;
