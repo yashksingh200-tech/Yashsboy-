@@ -32,6 +32,20 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Register PWA Service Worker for installability
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(
+      (registration) => {
+        console.log('[PWA] Service Worker registered successfully:', registration.scope);
+      },
+      (err) => {
+        console.warn('[PWA] Service Worker registration failed:', err);
+      }
+    );
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
