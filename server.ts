@@ -53,6 +53,9 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Serve static assets from public directory (manifest, icons, service worker)
+  app.use(express.static(path.join(process.cwd(), 'public')));
+
   // Initialize Firebase Admin SDK for backend token verification
   let firebaseAdminApp: App | null = null;
   try {
