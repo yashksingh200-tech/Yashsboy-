@@ -204,7 +204,11 @@ export function setEncryptedStorageItem(storageKey: string, data: any, userUid: 
     // Also trigger async AES-256-GCM upgrade in background
     encryptAsync(data, userUid).then((asyncEncrypted) => {
       if (asyncEncrypted && asyncEncrypted.startsWith(ENC_PREFIX)) {
-        localStorage.setItem(storageKey, asyncEncrypted);
+        try {
+          localStorage.setItem(storageKey, asyncEncrypted);
+        } catch {
+          // Ignore storage write failures during page unload / closing state
+        }
       }
     }).catch(() => {});
   } catch (err) {
