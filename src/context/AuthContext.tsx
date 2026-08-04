@@ -14,6 +14,7 @@ import {
 } from '../lib/firebase';
 import { encryptSync } from '../utils/encryption';
 import { logSecurityEvent } from '../utils/securityGuard';
+import { API_BASE_URL } from '../config';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -141,17 +142,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
 
     const isNative = Capacitor.isNativePlatform();
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    // Native Capacitor WebView Flow: Embedded WebViews are blocked by Google OAuth (disallowed_useragent).
-    // Using system browser Custom Tabs / signInWithRedirect via Capacitor Browser.
+    // Native Capacitor / Mobile Localhost Flow:
+    // Opening localhost in system browser will fail with ERR_CONNECTION_REFUSED during post-OAuth redirect.
+    // Use the production domain (https://yashsboy.onrender.com) for authentication.
     if (isNative) {
       try {
-        console.log('[AuthContext] Native Capacitor detected. Triggering system browser OAuth flow.');
+        console.log('[AuthContext] Native Capacitor detected. Opening production URL (https://yashsboy.onrender.com) for Google OAuth.');
         await Browser.close().catch(() => {});
-        await signInWithRedirect(auth, googleProvider);
+        await Browser.open({ url: API_BASE_URL });
+        setIsLoading(false);
         return true;
       } catch (err: any) {
-        console.error('Native sign in error, trying popup fallback:', err);
+        console.error('Native sign in browser open error, trying popup fallback:', err);
         try {
           const result = await signInWithPopup(auth, googleProvider);
           const firebaseUser = result.user;
@@ -210,8 +214,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         String(err.message).toLowerCase().includes('popup')
       ) {
         try {
-          console.log('[AuthContext] Popup blocked or disallowed. Triggering signInWithRedirect fallback.');
-          await signInWithRedirect(auth, googleProvider);
+          console.log('[AuthContext] Popup blocked or disallowed. Triggering redirect fallback.');
+          if (isLocalhost) {
+            // Redirecting from localhost to external OAuth will send redirect_uri=http://localhost which fails with ERR_CONNECTION_REFUSED.
+            // Navigate window to production Render URL directly.
+            window.location.href = API_BASE_URL;
+          } else {
+            await signInWithRedirect(auth, googleProvider);
+          }
           return true;
         } catch (redirectErr: any) {
           console.error('Redirect fallback error:', redirectErr);
