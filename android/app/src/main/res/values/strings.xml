@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ferio Heart AI</string>
+    <string name="title_activity_main">Ferio Heart AI</string>
+    <string name="package_name">com.dailycompanion.as</string>
+    <string name="custom_url_scheme">com.dailycompanion.as</string>
+</resources>

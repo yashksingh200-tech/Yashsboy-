@@ -38,7 +38,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1094345198987:android:4af25b4de33f880275f38e",
         "android_client_info": {
-          "package_name": "com.dailycompanion.as"
+          "package_name": "com.dailycompanion.ai"
         }
       },
       "oauth_client": [
@@ -46,7 +46,7 @@
           "client_id": "1094345198987-vf31b99u8srv2d86o3bkjbidfkip6u12.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.dailycompanion.as",
+            "package_name": "com.dailycompanion.ai",
             "certificate_hash": "955ab04841079492b7f97b3d8c3cc89506c90897"
           }
         },
