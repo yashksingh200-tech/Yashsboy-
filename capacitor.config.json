@@ -10,7 +10,8 @@
       "yashsboy.onrender.com",
       "*.firebaseapp.com",
       "*.google.com",
-      "*.googleapis.com"
+      "*.googleapis.com",
+      "accounts.google.com"
     ]
   },
   "android": {

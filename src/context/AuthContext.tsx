@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
 import { AuthUser } from '../types';
 import {
   auth,
@@ -85,10 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           saveUserSession(authUser);
           logSecurityEvent('LOGIN_SUCCESS', `Google OAuth redirect login for ${authUser.email}`, authUser.uid);
-          // If in Capacitor, close system browser window if open
-          if (Capacitor.isNativePlatform()) {
-            Browser.close().catch(() => {});
-          }
         }
       })
       .catch((err) => {
@@ -172,50 +167,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[AuthContext] setPersistence error prior to login:', pErr);
     }
 
-    const isNative = Capacitor.isNativePlatform();
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    // Native Capacitor / Mobile Localhost Flow:
-    // Opening localhost in system browser will fail with ERR_CONNECTION_REFUSED during post-OAuth redirect.
-    // Use the production domain (https://yashsboy.onrender.com) for authentication.
-    if (isNative) {
-      try {
-        console.log('[AuthContext] Native Capacitor detected. Opening production URL (https://yashsboy.onrender.com) for Google OAuth.');
-        await Browser.close().catch(() => {});
-        await Browser.open({ url: API_BASE_URL });
-        setIsLoading(false);
-        return true;
-      } catch (err: any) {
-        console.error('Native sign in browser open error, trying popup fallback:', err);
-        try {
-          const result = await signInWithPopup(auth, googleProvider);
-          const firebaseUser = result.user;
-          const idToken = await firebaseUser.getIdToken();
-
-          const authUser: AuthUser = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-            photoURL: firebaseUser.photoURL || undefined,
-            provider: 'google',
-            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-            token: idToken,
-          };
-
-          saveUserSession(authUser);
-          logSecurityEvent('LOGIN_SUCCESS', `Google OAuth login for ${authUser.email}`, authUser.uid);
-          setIsLoading(false);
-          return true;
-        } catch (popupErr: any) {
-          console.error('Native popup fallback error:', popupErr);
-          setError('Failed to sign in with Google in native view. Please try again.');
-          setIsLoading(false);
-          return false;
-        }
-      }
-    }
-
-    // Standard Web Flow
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
