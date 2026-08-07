@@ -1,7 +1,7 @@
 {
-  "name": "fario-heart-ai",
+  "name": "Ferio Heart AI",
+  "type": "react",
   "integrations": {
     "capacitor": {}
-  },
-  "type": "react"
+  }
 }
