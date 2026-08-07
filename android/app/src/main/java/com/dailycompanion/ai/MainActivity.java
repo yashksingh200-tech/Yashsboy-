@@ -1,4 +1,4 @@
-package com.dailycompanion.as;
+package com.dailycompanion.ai;
 
 import com.getcapacitor.BridgeActivity;
 
