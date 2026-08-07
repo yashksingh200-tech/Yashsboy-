@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { AuthUser } from '../types';
 import {
   auth,
   googleProvider,
+  signInWithCredential,
+  GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -16,6 +19,7 @@ import {
 import { decryptSync, encryptSync } from '../utils/encryption';
 import { logSecurityEvent } from '../utils/securityGuard';
 import { API_BASE_URL } from '../config';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -167,6 +171,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[AuthContext] setPersistence error prior to login:', pErr);
     }
 
+    // 1. NATIVE ANDROID / CAPACITOR FLOW
+    if (Capacitor.isNativePlatform()) {
+      try {
+        console.log('[AuthContext] Native platform detected. Executing native Google Sign-In...');
+        // Ensure web client ID is available for serverClientId requirement
+        const webClientId = firebaseConfig.oAuthClientId || '410831811130-rmrnp3m1on79nsfmk5jemgber18m2gcj.apps.googleusercontent.com';
+        
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          const firebaseUser = userCredential.user;
+          const freshIdToken = await firebaseUser.getIdToken();
+
+          const authUser: AuthUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            photoURL: firebaseUser.photoURL || undefined,
+            provider: 'google',
+            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            token: freshIdToken,
+          };
+
+          saveUserSession(authUser);
+          logSecurityEvent('LOGIN_SUCCESS', `Native Android Google login for ${authUser.email}`, authUser.uid);
+          setIsLoading(false);
+          return true;
+        } else {
+          throw new Error('Native Google Sign-In completed but no ID token was returned.');
+        }
+      } catch (nativeErr: any) {
+        console.error('[AuthContext] Native Google Sign-In error:', nativeErr);
+        let message = 'Native Google Sign-In failed. Please try again.';
+        if (nativeErr.code === '12501' || String(nativeErr.message).toLowerCase().includes('cancel')) {
+          message = 'Sign-in request was cancelled.';
+        } else if (nativeErr.message) {
+          message = nativeErr.message;
+        }
+        setError(message);
+        setIsLoading(false);
+        return false;
+      }
+    }
+
+    // 2. WEB BROWSER FALLBACK FLOW (Non-Native)
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
     try {
@@ -185,11 +237,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       saveUserSession(authUser);
-      logSecurityEvent('LOGIN_SUCCESS', `Google OAuth login for ${authUser.email}`, authUser.uid);
+      logSecurityEvent('LOGIN_SUCCESS', `Google OAuth web login for ${authUser.email}`, authUser.uid);
       setIsLoading(false);
       return true;
     } catch (err: any) {
-      console.error('Google sign in error:', err);
+      console.error('Google sign in web error:', err);
       // Fallback to redirect if popup is blocked/disallowed in iframe or browser
       if (
         err.code === 'auth/popup-blocked' ||
@@ -198,10 +250,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         String(err.message).toLowerCase().includes('popup')
       ) {
         try {
-          console.log('[AuthContext] Popup blocked or disallowed. Triggering redirect fallback.');
+          console.log('[AuthContext] Popup blocked or disallowed. Triggering redirect fallback for browser.');
           if (isLocalhost) {
-            // Redirecting from localhost to external OAuth will send redirect_uri=http://localhost which fails with ERR_CONNECTION_REFUSED.
-            // Navigate window to production Render URL directly.
             window.location.href = API_BASE_URL;
           } else {
             await signInWithRedirect(auth, googleProvider);
@@ -229,6 +279,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async (reason?: string) => {
     if (user?.uid) {
       logSecurityEvent('SESSION_EXPIRED', reason || 'User logged out', user.uid);
+    }
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await FirebaseAuthentication.signOut();
+      } catch (e) {
+        console.warn('Native FirebaseAuthentication.signOut error:', e);
+      }
     }
     try {
       await firebaseSignOut(auth);

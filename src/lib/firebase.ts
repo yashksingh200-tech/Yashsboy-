@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -33,7 +34,7 @@ googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-export { firebaseSignOut, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, browserLocalPersistence, setPersistence };
+export { firebaseSignOut, signInWithCredential, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, browserLocalPersistence, setPersistence };
 export type { FirebaseUser };
 
 

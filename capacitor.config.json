@@ -19,5 +19,13 @@
     "captureInput": true,
     "webContentsDebuggingEnabled": true,
     "backgroundColor": "#0f172a"
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": [
+        "google.com"
+      ]
+    }
   }
 }
