@@ -982,45 +982,58 @@ export const ChatTab: React.FC<ChatTabProps> = ({
           {/* Quick Chat Input */}
           <form
             onSubmit={handleSubmit}
-            className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 shrink-0 shadow-lg relative z-20"
+            className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 shadow-lg relative z-20"
           >
-            <button
-              type="button"
-              onClick={handleMicToggle}
-              title={isListeningMic ? 'Stop voice input' : 'Start voice input'}
-              className={`p-2 rounded-xl transition cursor-pointer ${
-                isListeningMic ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              {isListeningMic ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2 w-full">
+              {/* Left Action Buttons: Voice Input Mic + Contact Picker */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleMicToggle}
+                  title={isListeningMic ? 'Stop voice input' : 'Start voice input'}
+                  className={`w-10 h-10 rounded-xl transition cursor-pointer flex items-center justify-center shrink-0 border ${
+                    isListeningMic
+                      ? 'bg-rose-500 text-white border-rose-600 animate-pulse ring-2 ring-rose-300'
+                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-700'
+                  }`}
+                >
+                  {isListeningMic ? (
+                    <MicOff className="w-5 h-5 text-white" />
+                  ) : (
+                    <Mic className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  )}
+                </button>
 
-            {/* Contact Picker Trigger */}
-            <ChatContactPicker
-              userProfile={userProfile}
-              onUpdateUserProfile={onUpdateUserProfile}
-              onUpdateEmergencyContacts={onUpdateEmergencyContacts}
-              messages={messages}
-              threadTitle="Quick Chat"
-              onInsertText={(text) => setInputText((prev) => (prev ? `${prev} ${text}` : text))}
-            />
+                <ChatContactPicker
+                  userProfile={userProfile}
+                  onUpdateUserProfile={onUpdateUserProfile}
+                  onUpdateEmergencyContacts={onUpdateEmergencyContacts}
+                  messages={messages}
+                  threadTitle="Quick Chat"
+                  onInsertText={(text) => setInputText((prev) => (prev ? `${prev} ${text}` : text))}
+                />
+              </div>
 
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={`Message ${companion.name}...`}
-              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+              {/* Text Input Field with Send Button inside at the right end */}
+              <div className="relative flex-1 flex items-center">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={`Message ${companion.name}...`}
+                  className="w-full text-xs pl-3.5 pr-11 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                />
 
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isGenerating}
-              title="Send message"
-              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition cursor-pointer shrink-0 shadow-xs"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+                <button
+                  type="submit"
+                  disabled={!inputText.trim() || isGenerating}
+                  title="Send message"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-30 disabled:hover:bg-indigo-600 transition cursor-pointer flex items-center justify-center shrink-0 shadow-xs"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </form>
         </div>
       )}

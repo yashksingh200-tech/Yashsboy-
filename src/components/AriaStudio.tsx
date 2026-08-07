@@ -1161,63 +1161,69 @@ export const AriaStudio: React.FC<AriaStudioProps> = ({
       {!showVoiceRecorder && (
         <form
           onSubmit={handleSubmit}
-          className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 shrink-0 shadow-lg"
+          className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shrink-0 shadow-lg"
         >
-          {/* Photo Upload Attachment Trigger */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageSelect}
-            accept="image/*"
-            className="hidden"
-          />
+          <div className="flex items-center gap-2 w-full">
+            {/* Left Action Buttons: Photo + Long Voice Note + Contact Picker */}
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/*"
+                className="hidden"
+              />
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach a photo for Aria to analyze"
-            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-          >
-            <ImageIcon className="w-4 h-4 text-indigo-500" />
-          </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach a photo for Aria to analyze"
+                className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition cursor-pointer flex items-center justify-center shrink-0"
+              >
+                <ImageIcon className="w-4 h-4 text-indigo-500" />
+              </button>
 
-          {/* Long Voice Note Recorder Trigger */}
-          <button
-            type="button"
-            onClick={() => setShowVoiceRecorder(true)}
-            title="Record long voice note"
-            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-          >
-            <Mic className="w-4 h-4 text-purple-500" />
-          </button>
+              <button
+                type="button"
+                onClick={() => setShowVoiceRecorder(true)}
+                title="Record long voice note"
+                className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/60 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition cursor-pointer flex items-center justify-center shrink-0"
+              >
+                <Mic className="w-4 h-4 text-purple-500" />
+              </button>
 
-          {/* Contact Picker Trigger */}
-          <ChatContactPicker
-            userProfile={userProfile}
-            onUpdateUserProfile={onUpdateUserProfile}
-            onUpdateEmergencyContacts={onUpdateEmergencyContacts}
-            messages={messages}
-            threadTitle={activeThread.title}
-            onInsertText={(text) => setInputText((prev) => (prev ? `${prev} ${text}` : text))}
-          />
+              <ChatContactPicker
+                userProfile={userProfile}
+                onUpdateUserProfile={onUpdateUserProfile}
+                onUpdateEmergencyContacts={onUpdateEmergencyContacts}
+                messages={messages}
+                threadTitle={activeThread.title}
+                onInsertText={(text) => setInputText((prev) => (prev ? `${prev} ${text}` : text))}
+              />
+            </div>
 
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder={
-              selectedImage ? 'Add a message about this photo...' : `Message Aria in Studio (${activeThread.title})...`
-            }
-            className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          />
+            {/* Input Field with integrated Send button at the right end */}
+            <div className="relative flex-1 flex items-center">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={
+                  selectedImage ? 'Add a message about this photo...' : `Message Aria in Studio (${activeThread.title})...`
+                }
+                className="w-full text-xs pl-3.5 pr-11 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              />
 
-          <button
-            type="submit"
-            disabled={(!inputText.trim() && !selectedImage) || isGenerating}
-            className="p-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white transition shadow-sm cursor-pointer disabled:opacity-40"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+              <button
+                type="submit"
+                disabled={(!inputText.trim() && !selectedImage) || isGenerating}
+                title="Send message"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white disabled:opacity-30 transition cursor-pointer flex items-center justify-center shrink-0 shadow-xs"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </form>
       )}
 

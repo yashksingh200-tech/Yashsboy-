@@ -10,9 +10,11 @@ import {
   getRedirectResult,
   firebaseSignOut,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
   FirebaseUser,
 } from '../lib/firebase';
-import { encryptSync } from '../utils/encryption';
+import { decryptSync, encryptSync } from '../utils/encryption';
 import { logSecurityEvent } from '../utils/securityGuard';
 import { API_BASE_URL } from '../config';
 
@@ -29,11 +31,28 @@ interface AuthContextType {
   getAuthToken: () => string;
 }
 
+const getStoredSessionUser = (): AuthUser | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem('daily_companion_session_user');
+    if (cached) {
+      const decrypted = decryptSync<AuthUser | null>(cached, 'session_sec_key', null);
+      if (decrypted && decrypted.uid) {
+        return decrypted;
+      }
+    }
+  } catch (e) {
+    console.warn('[AuthContext] Failed to load stored user session from localStorage:', e);
+  }
+  return null;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const initialSessionUser = getStoredSessionUser();
+  const [user, setUser] = useState<AuthUser | null>(initialSessionUser);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialSessionUser);
   const [error, setError] = useState<string | null>(null);
   const [securityNotice, setSecurityNotice] = useState<string | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,8 +96,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
   }, []);
 
-  // Listen to Firebase Auth state changes
+  // Listen to Firebase Auth state changes with explicit browserLocalPersistence
   useEffect(() => {
+    // Ensure persistence is set to browserLocalPersistence
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn('[AuthContext] Persistence set error in listener:', err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
@@ -97,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error fetching Firebase ID token:', err);
         }
       } else {
+        // Firebase explicitly confirmed no active authenticated user
         setUser(null);
         localStorage.removeItem('daily_companion_session_user');
       }
@@ -140,6 +165,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async (): Promise<boolean> => {
     setError(null);
     setIsLoading(true);
+
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (pErr) {
+      console.warn('[AuthContext] setPersistence error prior to login:', pErr);
+    }
 
     const isNative = Capacitor.isNativePlatform();
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');

@@ -521,52 +521,54 @@ export const FloatingVoiceAssistant: React.FC<FloatingVoiceAssistantProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Floating Home / Universal Mic Button (Bottom Right) */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
-        {/* Active Wake Word Persistent Badge */}
-        {wakeWordEnabled && (
-          <div className="bg-slate-900/95 text-white text-[10px] font-medium px-3 py-1.5 rounded-2xl shadow-xl border border-indigo-500/40 flex items-center gap-2 backdrop-blur-md animate-fade-in max-w-xs">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <div className="leading-tight">
-              <p className="font-bold text-indigo-300">Ferio Wake-Word Listening</p>
-              <p className="text-[9px] text-slate-300">Say "Hey Ferio" or "Ferio"</p>
+      {/* Floating Home / Universal Mic Button (Shown when not on Chat tab to avoid input overlap) */}
+      {activeTab !== 'chat' && (
+        <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+          {/* Active Wake Word Persistent Badge */}
+          {wakeWordEnabled && (
+            <div className="bg-slate-900/95 text-white text-[10px] font-medium px-3 py-1.5 rounded-2xl shadow-xl border border-indigo-500/40 flex items-center gap-2 backdrop-blur-md animate-fade-in max-w-xs">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <div className="leading-tight">
+                <p className="font-bold text-indigo-300">Ferio Wake-Word Listening</p>
+                <p className="text-[9px] text-slate-300">Say "Hey Ferio" or "Ferio"</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleWakeWordRequest}
+                className="ml-1 text-[9px] font-bold text-slate-400 hover:text-rose-400 transition cursor-pointer underline"
+                title="Disable Wake Word"
+              >
+                Stop
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleToggleWakeWordRequest}
-              className="ml-1 text-[9px] font-bold text-slate-400 hover:text-rose-400 transition cursor-pointer underline"
-              title="Disable Wake Word"
-            >
-              Stop
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Universal Visible Mic Button for Voice Commands */}
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => {
-            setIsOpenOverlay(true);
-            setAiResponse(null);
-            setExecutedFeedback(null);
-            setSpokenQuestion('');
-            startQuestionListening();
-          }}
-          className="relative group p-3.5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-xl shadow-indigo-500/30 border border-white/20 cursor-pointer flex items-center justify-center gap-2"
-          title="Voice Command Assistant - Tap to control app by voice"
-        >
-          <Mic className="w-5 h-5 text-white animate-pulse" />
-          <span className="text-xs font-bold pr-1 hidden sm:inline-block">Voice Control</span>
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
-          </span>
-        </motion.button>
-      </div>
+          {/* Universal Visible Mic Button for Voice Commands */}
+          <motion.button
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              setIsOpenOverlay(true);
+              setAiResponse(null);
+              setExecutedFeedback(null);
+              setSpokenQuestion('');
+              startQuestionListening();
+            }}
+            className="relative group p-3.5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-xl shadow-indigo-500/30 border border-white/20 cursor-pointer flex items-center justify-center gap-2"
+            title="Voice Command Assistant - Tap to control app by voice"
+          >
+            <Mic className="w-5 h-5 text-white animate-pulse" />
+            <span className="text-xs font-bold pr-1 hidden sm:inline-block">Voice Control</span>
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
+            </span>
+          </motion.button>
+        </div>
+      )}
 
       {/* Full-App Voice Command Mini Overlay Interface */}
       <AnimatePresence>

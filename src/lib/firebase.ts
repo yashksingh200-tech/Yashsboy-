@@ -18,11 +18,11 @@ import firebaseConfig from '../../firebase-applet-config.json';
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 
-// Safeguard auth persistence against IndexedDB closing/hidden window lifecycle states
+// Configure persistent local session storage (browserLocalPersistence -> localStorage)
 if (typeof window !== 'undefined') {
-  setPersistence(auth, indexedDBLocalPersistence).catch((err) => {
-    console.warn('[Firebase Auth] IndexedDB persistence fallback triggered:', err);
-    return setPersistence(auth, browserLocalPersistence).catch(() => {
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn('[Firebase Auth] browserLocalPersistence failed, trying indexedDBLocalPersistence:', err);
+    return setPersistence(auth, indexedDBLocalPersistence).catch(() => {
       return setPersistence(auth, inMemoryPersistence).catch(() => {});
     });
   });
@@ -33,7 +33,7 @@ googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-export { firebaseSignOut, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged };
+export { firebaseSignOut, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, browserLocalPersistence, setPersistence };
 export type { FirebaseUser };
 
 
