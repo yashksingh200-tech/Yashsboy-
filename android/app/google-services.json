@@ -12,7 +12,12 @@
           "package_name": "Beauty.salon"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1094345198987-0kec2ui4skbe3f50rah837ohnagvf2dt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCvJqL7s9FXdZr8hbpg7kqdf4pb_EZfhko"
@@ -20,7 +25,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1094345198987-0kec2ui4skbe3f50rah837ohnagvf2dt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094345198987:android:4af25b4de33f880275f38e",
+        "android_client_info": {
+          "package_name": "com.dailycompanion.as"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1094345198987-vf31b99u8srv2d86o3bkjbidfkip6u12.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dailycompanion.as",
+            "certificate_hash": "955ab04841079492b7f97b3d8c3cc89506c90897"
+          }
+        },
+        {
+          "client_id": "1094345198987-0kec2ui4skbe3f50rah837ohnagvf2dt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvJqL7s9FXdZr8hbpg7kqdf4pb_EZfhko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1094345198987-0kec2ui4skbe3f50rah837ohnagvf2dt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
