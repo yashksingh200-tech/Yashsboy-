@@ -1,0 +1,7 @@
+{
+  "name": "fario-heart-ai",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
