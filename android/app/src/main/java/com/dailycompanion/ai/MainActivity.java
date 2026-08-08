@@ -11,4 +11,3 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(FirebaseAuthenticationPlugin.class);
     }
 }
-
