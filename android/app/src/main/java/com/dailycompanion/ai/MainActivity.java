@@ -7,7 +7,7 @@ import io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthent
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         registerPlugin(FirebaseAuthenticationPlugin.class);
+        super.onCreate(savedInstanceState);
     }
 }
