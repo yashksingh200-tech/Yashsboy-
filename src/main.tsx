@@ -46,6 +46,22 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   });
 }
 
+// Prevent accidental app exit: require two back-button presses within 2 seconds to exit
+if (typeof window !== 'undefined') {
+  import('@capacitor/app').then(({ App }) => {
+    let lastBackPress = 0;
+    App.addListener('backButton', () => {
+      const now = Date.now();
+      if (now - lastBackPress < 2000) {
+        App.exitApp();
+      } else {
+        lastBackPress = now;
+        console.log('[BackButton] Press again to exit');
+      }
+    });
+  }).catch((e) => console.warn('[BackButton] Failed to attach listener:', e));
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

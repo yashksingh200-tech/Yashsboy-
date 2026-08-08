@@ -12,7 +12,8 @@
 			"*.google.com",
 			"*.googleapis.com",
 			"accounts.google.com"
-		]
+		],
+		"url": "https://yashsboy.onrender.com"
 	},
 	"android": {
 		"allowMixedContent": true,
