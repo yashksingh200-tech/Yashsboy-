@@ -446,7 +446,12 @@ function MainApp() {
         throw new Error(serverDetail);
       }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error(`ParseError: status=${res.status} url=${res.url} contentType=${res.headers.get("content-type")}`);
+      }
       const replyText = data.text || "I'm listening and right here with you.";
 
       if (data.isCrisisResponse) {
