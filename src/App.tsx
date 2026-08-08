@@ -446,11 +446,12 @@ function MainApp() {
         throw new Error(serverDetail);
       }
 
+      const resClone = res.clone();
       let data;
       try {
         data = await res.json();
       } catch (parseErr) {
-        const bodyText = await res.clone().text().catch(() => 'unreadable');
+        const bodyText = await resClone.text().catch(() => 'unreadable');
         throw new Error(`ParseError: status=${res.status} url=${res.url} ct=${res.headers.get("content-type")} body=${bodyText.slice(0, 200)}`);
       }
       const replyText = data.text || "I'm listening and right here with you.";
