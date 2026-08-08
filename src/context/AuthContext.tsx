@@ -178,7 +178,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Ensure web client ID is available for serverClientId requirement
         const webClientId = firebaseConfig.oAuthClientId || '410831811130-rmrnp3m1on79nsfmk5jemgber18m2gcj.apps.googleusercontent.com';
         
-        const result = await FirebaseAuthentication.signInWithGoogle();
+        let result;
+        try {
+          result = await FirebaseAuthentication.signInWithGoogle({
+            scopes: ['email', 'profile'],
+            skipNativeAuth: false,
+          });
+        } catch (cmErr: any) {
+          const errStr = String(cmErr?.message || cmErr);
+          if (
+            errStr.includes('No credentials available') ||
+            cmErr?.code === '16' ||
+            errStr.toLowerCase().includes('nocredential')
+          ) {
+            console.warn('[AuthContext] Credential Manager returned no saved credentials. Retrying with useCredentialManager: false...');
+            result = await FirebaseAuthentication.signInWithGoogle({
+              scopes: ['email', 'profile'],
+              useCredentialManager: false,
+              skipNativeAuth: false,
+            });
+          } else {
+            throw cmErr;
+          }
+        }
         const idToken = result.credential?.idToken;
 
         if (idToken) {
