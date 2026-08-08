@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Ferio Heart AI</string>
     <string name="title_activity_main">Ferio Heart AI</string>
     <string name="package_name">com.dailycompanion.ai</string>
     <string name="custom_url_scheme">com.dailycompanion.ai</string>
-    <string name="default_web_client_id">410831811130-rmrnp3m1on79nsfmk5jemgber18m2gcj.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">1094345198987-0kec2ui4skbe3f50rah837ohnagvf2dt.apps.googleusercontent.com</string>
 </resources>
