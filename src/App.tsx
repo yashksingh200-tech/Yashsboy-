@@ -491,7 +491,7 @@ function MainApp() {
       const errorMsg: ChatMessage = {
         id: 'ai-err-' + Date.now(),
         sender: 'ai',
-        text: "I experienced a brief pause in connection. Please click retry to send your message again.",
+        text: "DEBUG ERROR: " + (err?.message || String(err)) + " | " + (err?.name || ''),
         timestamp: new Date().toISOString(),
         threadId: targetThreadId,
         isError: true,
