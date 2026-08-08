@@ -419,6 +419,7 @@ function MainApp() {
         method: 'POST',
         userId: user?.uid || 'guest',
         token: getAuthToken(),
+        timeoutMs: 60000,
         body: JSON.stringify({
           message: text,
           history: threadHistory,
@@ -439,7 +440,10 @@ function MainApp() {
       });
 
       if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
+        const errorBody = await res.json().catch(() => null);
+        const serverDetail = errorBody?.error || errorBody?.message || `Server returned status ${res.status}`;
+        console.error('[Chat API Non-OK Response]', { status: res.status, statusText: res.statusText, errorBody });
+        throw new Error(serverDetail);
       }
 
       const data = await res.json();
@@ -476,7 +480,14 @@ function MainApp() {
       if (!isVoiceMuted) {
         speakMessage(replyText, 'auto');
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[Chat API Error Detail]', {
+        message: err?.message || String(err),
+        name: err?.name,
+        stack: err?.stack,
+        raw: err,
+      });
+
       const errorMsg: ChatMessage = {
         id: 'ai-err-' + Date.now(),
         sender: 'ai',

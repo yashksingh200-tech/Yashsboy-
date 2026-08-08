@@ -9,13 +9,14 @@ import { getApiUrl } from '../config';
 export interface ApiOptions extends RequestInit {
   userId?: string;
   token?: string;
+  timeoutMs?: number;
 }
 
 /**
  * Ensures relative endpoints use secure connection and appends authentication headers
  */
 export async function secureFetch(endpoint: string, options: ApiOptions = {}, retries = 2): Promise<Response> {
-  const { userId, token, headers: customHeaders, ...restOptions } = options;
+  const { userId, token, timeoutMs = 60000, headers: customHeaders, signal: userSignal, ...restOptions } = options;
 
   // 1. Resolve endpoint using central API_BASE_URL ("https://yashsboy.onrender.com")
   let url = getApiUrl(endpoint);
@@ -57,18 +58,32 @@ export async function secureFetch(endpoint: string, options: ApiOptions = {}, re
     headers['X-User-Id'] = activeUserId;
   }
 
-  // 3. Execute fetch request with retry loop for transient 5xx or network errors
+  // 3. Execute fetch request with timeout & retry loop for transient 5xx or network errors
   let lastError: any = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    if (userSignal) {
+      userSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+
     try {
+      console.log(`[secureFetch] Requesting (${attempt + 1}/${retries + 1}): ${url}`);
       const response = await fetch(url, {
         ...restOptions,
         headers,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Retry on transient server errors (502, 503, 504)
       if ((response.status === 502 || response.status === 503 || response.status === 504) && attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+        console.warn(`[secureFetch] Transient HTTP ${response.status} from ${url}. Retrying attempt ${attempt + 2}...`);
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
         continue;
       }
 
@@ -76,16 +91,32 @@ export async function secureFetch(endpoint: string, options: ApiOptions = {}, re
         console.warn('[Security] Unauthorized API call (401). Authentication credentials invalid or missing.');
       }
 
+      if (!response.ok) {
+        console.warn(`[secureFetch] HTTP ${response.status} ${response.statusText} from ${url}`);
+      }
+
       return response;
-    } catch (err) {
-      lastError = err;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isAbort = err?.name === 'AbortError' || controller.signal.aborted;
+      const errorDetail = isAbort ? `Request timed out after ${timeoutMs}ms` : (err?.message || String(err));
+
+      console.error(`[secureFetch Error] Attempt ${attempt + 1}/${retries + 1} failed for ${url}:`, {
+        name: err?.name,
+        message: errorDetail,
+        stack: err?.stack,
+        cause: err?.cause,
+      });
+
+      lastError = isAbort ? new Error(`Request timed out after ${timeoutMs}ms (${url})`) : err;
+
       if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
       }
     }
   }
 
-  throw lastError || new Error('Network request failed after retries');
+  throw lastError || new Error(`Network request failed after retries for ${url}`);
 }
 
 /**
